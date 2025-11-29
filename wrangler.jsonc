@@ -10,13 +10,7 @@
     {
       "binding": "DB",
       "database_name": "plarail-sns-production",
-      "database_id": "00000000-0000-0000-0000-000000000000"
-    }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "R2",
-      "bucket_name": "plarail-images"
+      "database_id": "0dcad061-67ea-4c86-8bdf-55f1e818f60d"
     }
   ]
 }
