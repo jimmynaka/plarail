@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
   owned_trains TEXT, -- 所有車両リスト（JSON配列）
   social_links TEXT, -- SNSリンク（JSON）
   is_official BOOLEAN DEFAULT 0, -- 公式アカウントフラグ
+  points INTEGER DEFAULT 100, -- ポイント残高
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

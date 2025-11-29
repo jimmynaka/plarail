@@ -1,10 +1,10 @@
 -- テストユーザーデータ
-INSERT OR IGNORE INTO users (id, username, email, display_name, bio, is_official, plarail_history, specialty_tags, owned_trains) VALUES 
-  (1, 'admin', 'admin@plarail-sns.com', 'プラレールSNS運営', '公式アカウントです', 1, NULL, NULL, NULL),
-  (2, 'takara_tomy', 'official@takaratomy.co.jp', 'タカラトミー公式', 'プラレール公式アカウント', 1, NULL, NULL, NULL),
-  (3, 'plarail_taro', 'taro@example.com', 'プラレール太郎', 'プラレール歴30年のベテランです。レイアウト作りが得意です。', 0, '30年', '["レイアウト設計", "改造"]', '["新幹線N700S", "ドクターイエロー", "E5系はやぶさ"]'),
-  (4, 'train_collector', 'collector@example.com', '車両コレクター花子', 'プラレールを500両以上コレクションしています！', 0, '15年', '["車両収集", "塗装"]', '["E6系こまち", "E7系かがやき", "923形ドクターイエロー"]'),
-  (5, 'layout_master', 'layout@example.com', 'レイアウトマスター', '複雑なレイアウト作りが趣味です。', 0, '10年', '["レイアウト設計", "電飾"]', '["N700系新幹線", "E233系", "EF66電気機関車"]');
+INSERT OR IGNORE INTO users (id, username, email, display_name, bio, is_official, points, plarail_history, specialty_tags, owned_trains) VALUES 
+  (1, 'admin', 'admin@plarail-sns.com', 'プラレールSNS運営', '公式アカウントです', 1, 100, NULL, NULL, NULL),
+  (2, 'takara_tomy', 'official@takaratomy.co.jp', 'タカラトミー公式', 'プラレール公式アカウント', 1, 100, NULL, NULL, NULL),
+  (3, 'plarail_taro', 'taro@example.com', 'プラレール太郎', 'プラレール歴30年のベテランです。レイアウト作りが得意です。', 0, 100, '30年', '["レイアウト設計", "改造"]', '["新幹線N700S", "ドクターイエロー", "E5系はやぶさ"]'),
+  (4, 'train_collector', 'collector@example.com', '車両コレクター花子', 'プラレールを500両以上コレクションしています！', 0, 100, '15年', '["車両収集", "塗装"]', '["E6系こまち", "E7系かがやき", "923形ドクターイエロー"]'),
+  (5, 'layout_master', 'layout@example.com', 'レイアウトマスター', '複雑なレイアウト作りが趣味です。', 0, 100, '10年', '["レイアウト設計", "電飾"]', '["N700系新幹線", "E233系", "EF66電気機関車"]');
 
 -- テスト投稿データ
 INSERT OR IGNORE INTO posts (user_id, title, description, category, visibility, images, tags, like_count) VALUES 

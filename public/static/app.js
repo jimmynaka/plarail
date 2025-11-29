@@ -29,6 +29,7 @@ function updateLoginUI() {
     loginBtn.style.display = 'none';
     userMenu.style.display = 'flex';
     document.getElementById('user-display-name').textContent = currentUser.display_name;
+    updateUserPoints(); // ポイント残高を更新
   } else {
     loginBtn.style.display = 'block';
     userMenu.style.display = 'none';
@@ -975,5 +976,408 @@ async function loadRequests() {
     `).join('');
   } catch (error) {
     console.error('要望の読み込みエラー:', error);
+  }
+}
+
+// ===== ポイント・投げ銭システム =====
+
+// ポイント残高更新
+async function updateUserPoints() {
+  if (!currentUser) return;
+  
+  try {
+    const { data } = await axios.get(`/api/users/${currentUser.id}/points`);
+    document.getElementById('user-points').textContent = data.points;
+    if (document.getElementById('points-balance')) {
+      document.getElementById('points-balance').textContent = data.points;
+    }
+  } catch (error) {
+    console.error('ポイント取得エラー:', error);
+  }
+}
+
+// ログインボーナス取得
+async function claimDailyBonus() {
+  if (!currentUser) {
+    showNotification('ログインしてください', 'error');
+    return;
+  }
+  
+  try {
+    const { data } = await axios.post(`/api/users/${currentUser.id}/daily-bonus`);
+    showNotification(`ログインボーナス${data.bonus}ポイントを獲得しました！`, 'success');
+    updateUserPoints();
+    document.getElementById('daily-bonus-btn').disabled = true;
+    document.getElementById('daily-bonus-btn').textContent = '本日は受け取り済みです';
+  } catch (error) {
+    if (error.response && error.response.data.error === 'Already received today') {
+      showNotification('本日は既に受け取り済みです', 'error');
+      document.getElementById('daily-bonus-btn').disabled = true;
+      document.getElementById('daily-bonus-btn').textContent = '本日は受け取り済みです';
+    } else {
+      showNotification('ボーナスの取得に失敗しました', 'error');
+    }
+  }
+}
+
+// ポイントモーダル表示
+function showPointsModal() {
+  if (!currentUser) {
+    showNotification('ログインしてください', 'error');
+    showLoginModal();
+    return;
+  }
+  
+  document.getElementById('points-modal').classList.remove('hidden');
+  updateUserPoints();
+  loadPointsTransactions();
+}
+
+// ポイントモーダルを閉じる
+function closePointsModal() {
+  document.getElementById('points-modal').classList.add('hidden');
+}
+
+// ポイントタブ切り替え
+function switchPointsTab(tab) {
+  ['transactions', 'exchanges'].forEach(t => {
+    const tabBtn = document.getElementById('points-tab-' + t);
+    if (tabBtn) {
+      if (t === tab) {
+        tabBtn.className = 'px-6 py-3 text-purple-600 border-b-2 border-purple-600 font-semibold';
+      } else {
+        tabBtn.className = 'px-6 py-3 text-gray-600 hover:text-purple-600';
+      }
+    }
+  });
+  
+  if (tab === 'transactions') {
+    loadPointsTransactions();
+  } else if (tab === 'exchanges') {
+    loadExchangeHistory();
+  }
+}
+
+// 取引履歴読み込み
+async function loadPointsTransactions() {
+  if (!currentUser) return;
+  
+  const container = document.getElementById('points-content');
+  container.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-4xl text-gray-400"></i></div>';
+  
+  try {
+    const { data } = await axios.get(`/api/users/${currentUser.id}/transactions`);
+    
+    if (data.transactions.length === 0) {
+      container.innerHTML = '<div class="text-center py-12 text-gray-500">取引履歴がありません</div>';
+      return;
+    }
+    
+    container.innerHTML = `
+      <div class="space-y-4">
+        ${data.transactions.map(t => {
+          const isReceived = t.to_user_id === currentUser.id;
+          const isSystem = !t.from_user_id;
+          let label, color;
+          
+          if (t.transaction_type === 'login') {
+            label = 'ログインボーナス';
+            color = 'green';
+          } else if (t.transaction_type === 'tip') {
+            label = isReceived ? '投げ銭受取' : '投げ銭送信';
+            color = isReceived ? 'blue' : 'orange';
+          } else if (t.transaction_type === 'exchange') {
+            label = 'アイテム交換';
+            color = 'purple';
+          } else {
+            label = 'システム';
+            color = 'gray';
+          }
+          
+          return `
+            <div class="bg-white border rounded-lg p-4">
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center mb-1">
+                    <span class="bg-${color}-100 text-${color}-700 text-xs px-2 py-1 rounded mr-2">${label}</span>
+                    <span class="text-sm text-gray-500">${new Date(t.created_at).toLocaleString('ja-JP')}</span>
+                  </div>
+                  ${t.transaction_type === 'tip' ? `
+                    <p class="text-sm text-gray-700">
+                      ${isReceived ? t.from_display_name + 'さんから' : t.to_display_name + 'さんへ'}
+                    </p>
+                  ` : ''}
+                  ${t.message ? `<p class="text-sm text-gray-600 mt-1">${t.message}</p>` : ''}
+                </div>
+                <div class="text-right">
+                  <p class="text-xl font-bold ${isReceived || isSystem ? 'text-green-600' : 'text-red-600'}">
+                    ${isReceived || isSystem ? '+' : '-'}${Math.abs(t.amount)}P
+                  </p>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  } catch (error) {
+    console.error('取引履歴読み込みエラー:', error);
+    container.innerHTML = '<div class="text-center py-12 text-red-500">読み込みに失敗しました</div>';
+  }
+}
+
+// 交換履歴読み込み
+async function loadExchangeHistory() {
+  if (!currentUser) return;
+  
+  const container = document.getElementById('points-content');
+  container.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-4xl text-gray-400"></i></div>';
+  
+  try {
+    const { data } = await axios.get(`/api/users/${currentUser.id}/exchanges`);
+    
+    if (data.exchanges.length === 0) {
+      container.innerHTML = '<div class="text-center py-12 text-gray-500">交換履歴がありません</div>';
+      return;
+    }
+    
+    container.innerHTML = `
+      <div class="space-y-4">
+        ${data.exchanges.map(e => `
+          <div class="bg-white border rounded-lg p-4 flex">
+            <img src="${e.image_url}" class="w-20 h-20 object-cover rounded mr-4" alt="${e.name}">
+            <div class="flex-1">
+              <h4 class="font-semibold">${e.name}</h4>
+              <p class="text-sm text-gray-600">${e.description}</p>
+              <div class="flex items-center justify-between mt-2">
+                <span class="text-sm text-gray-500">${new Date(e.created_at).toLocaleDateString('ja-JP')}</span>
+                <span class="text-lg font-bold text-purple-600">${e.points_used}P</span>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } catch (error) {
+    console.error('交換履歴読み込みエラー:', error);
+    container.innerHTML = '<div class="text-center py-12 text-red-500">読み込みに失敗しました</div>';
+  }
+}
+
+// 交換所モーダル表示
+function showExchangeModal() {
+  document.getElementById('exchange-modal').classList.remove('hidden');
+  loadExchangeItems();
+}
+
+// 交換所モーダルを閉じる
+function closeExchangeModal() {
+  document.getElementById('exchange-modal').classList.add('hidden');
+}
+
+// 交換アイテム読み込み
+async function loadExchangeItems(category = null) {
+  const container = document.getElementById('exchange-items-container');
+  container.innerHTML = '<div class="col-span-full text-center py-8"><i class="fas fa-spinner fa-spin text-4xl text-gray-400"></i></div>';
+  
+  try {
+    const url = category ? `/api/exchange/items?category=${category}` : '/api/exchange/items';
+    const { data } = await axios.get(url);
+    
+    if (data.items.length === 0) {
+      container.innerHTML = '<div class="col-span-full text-center py-12 text-gray-500">アイテムがありません</div>';
+      return;
+    }
+    
+    container.innerHTML = data.items.map(item => `
+      <div class="bg-white rounded-lg shadow-md overflow-hidden card-hover">
+        <img src="${item.image_url}" class="w-full h-48 object-cover" alt="${item.name}">
+        <div class="p-4">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs px-2 py-1 rounded ${
+              item.category === 'goods' ? 'bg-blue-100 text-blue-700' :
+              item.category === 'event' ? 'bg-green-100 text-green-700' :
+              'bg-purple-100 text-purple-700'
+            }">${
+              item.category === 'goods' ? 'グッズ' :
+              item.category === 'event' ? 'イベント' : '特典'
+            }</span>
+            <span class="text-lg font-bold text-purple-600">${item.required_points}P</span>
+          </div>
+          <h3 class="font-semibold text-lg mb-2">${item.name}</h3>
+          <p class="text-gray-600 text-sm mb-3 line-clamp-2">${item.description}</p>
+          ${item.stock_quantity >= 0 ? `
+            <p class="text-xs text-gray-500 mb-3">在庫: ${item.stock_quantity}個</p>
+          ` : ''}
+          <button onclick="exchangeItem(${item.id}, '${item.name}', ${item.required_points})" 
+                  class="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition">
+            <i class="fas fa-exchange-alt mr-1"></i>交換する
+          </button>
+        </div>
+      </div>
+    `).join('');
+  } catch (error) {
+    console.error('アイテム読み込みエラー:', error);
+    container.innerHTML = '<div class="col-span-full text-center py-12 text-red-500">読み込みに失敗しました</div>';
+  }
+}
+
+// 交換アイテムフィルター
+function filterExchangeItems(category) {
+  ['all', 'goods', 'event', 'privilege'].forEach(c => {
+    const btn = document.getElementById('exchange-filter-' + c);
+    if (btn) {
+      if (c === category) {
+        btn.className = 'px-4 py-2 rounded-lg bg-purple-600 text-white whitespace-nowrap';
+      } else {
+        btn.className = 'px-4 py-2 rounded-lg bg-gray-200 text-gray-700 whitespace-nowrap';
+      }
+    }
+  });
+  
+  loadExchangeItems(category === 'all' ? null : category);
+}
+
+// アイテム交換
+async function exchangeItem(itemId, itemName, requiredPoints) {
+  if (!currentUser) {
+    showNotification('ログインしてください', 'error');
+    showLoginModal();
+    return;
+  }
+  
+  if (!confirm(`「${itemName}」を${requiredPoints}ポイントで交換しますか？`)) {
+    return;
+  }
+  
+  try {
+    await axios.post('/api/exchange', {
+      user_id: currentUser.id,
+      item_id: itemId
+    });
+    
+    showNotification('交換が完了しました！', 'success');
+    updateUserPoints();
+    loadExchangeItems();
+  } catch (error) {
+    if (error.response && error.response.data.error) {
+      const errorMsg = error.response.data.error;
+      if (errorMsg === 'Insufficient points') {
+        showNotification('ポイントが不足しています', 'error');
+      } else if (errorMsg === 'Out of stock') {
+        showNotification('在庫がありません', 'error');
+      } else {
+        showNotification(errorMsg, 'error');
+      }
+    } else {
+      showNotification('交換に失敗しました', 'error');
+    }
+  }
+}
+
+// 投げ銭モーダル表示
+let tipTargetUser = null;
+let tipTargetType = null;
+let tipTargetId = null;
+
+function showTipModal(toUserId, toUserName, targetType, targetId) {
+  if (!currentUser) {
+    showNotification('ログインしてください', 'error');
+    showLoginModal();
+    return;
+  }
+  
+  tipTargetUser = { id: toUserId, name: toUserName };
+  tipTargetType = targetType;
+  tipTargetId = targetId;
+  
+  document.getElementById('tip-target-name').textContent = toUserName;
+  document.getElementById('tip-modal').classList.remove('hidden');
+}
+
+// 投げ銭モーダルを閉じる
+function closeTipModal() {
+  document.getElementById('tip-modal').classList.add('hidden');
+  document.getElementById('tip-form').reset();
+}
+
+// 投げ銭送信
+async function submitTip(event) {
+  event.preventDefault();
+  
+  if (!currentUser || !tipTargetUser) {
+    showNotification('エラーが発生しました', 'error');
+    return;
+  }
+  
+  const amount = parseInt(document.getElementById('tip-amount').value);
+  const message = document.getElementById('tip-message').value;
+  
+  try {
+    await axios.post('/api/tips', {
+      from_user_id: currentUser.id,
+      to_user_id: tipTargetUser.id,
+      amount,
+      target_type: tipTargetType,
+      target_id: tipTargetId,
+      message
+    });
+    
+    showNotification(`${tipTargetUser.name}さんに${amount}ポイントを送りました！`, 'success');
+    closeTipModal();
+    updateUserPoints();
+  } catch (error) {
+    if (error.response && error.response.data.error) {
+      const errorMsg = error.response.data.error;
+      if (errorMsg === 'Insufficient points') {
+        showNotification('ポイントが不足しています', 'error');
+      } else if (errorMsg === 'Cannot send to yourself') {
+        showNotification('自分には送れません', 'error');
+      } else {
+        showNotification(errorMsg, 'error');
+      }
+    } else {
+      showNotification('投げ銭の送信に失敗しました', 'error');
+    }
+  }
+}
+
+// ===== ナビゲーション機能 =====
+
+// トップへスクロール
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // 検索結果を閉じる
+  const searchResults = document.getElementById('search-results');
+  if (searchResults && searchResults.style.display !== 'none') {
+    clearSearch();
+  }
+}
+
+// セクションへスクロール
+function scrollToSection(sectionId) {
+  // 検索結果を閉じる
+  const searchResults = document.getElementById('search-results');
+  if (searchResults && searchResults.style.display !== 'none') {
+    clearSearch();
+  }
+  
+  // コンテンツエリアを表示
+  const contentArea = document.getElementById('content-area');
+  if (contentArea) {
+    contentArea.style.display = 'block';
+  }
+  
+  // セクションまでスクロール
+  const element = document.getElementById(sectionId);
+  if (element) {
+    const offset = 80; // ナビゲーションバーの高さ分のオフセット
+    const elementPosition = element.getBoundingClientRect().top;
+    const offsetPosition = elementPosition + window.pageYOffset - offset;
+    
+    window.scrollTo({
+      top: offsetPosition,
+      behavior: 'smooth'
+    });
   }
 }

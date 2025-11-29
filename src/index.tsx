@@ -556,6 +556,217 @@ app.get('/api/search', async (c) => {
   return c.json(results)
 })
 
+// ===== ポイント・投げ銭システムAPI =====
+
+// ユーザーのポイント残高取得
+app.get('/api/users/:id/points', async (c) => {
+  const { DB } = c.env
+  const userId = c.req.param('id')
+  
+  const user = await DB.prepare('SELECT points FROM users WHERE id = ?').bind(userId).first()
+  if (!user) return c.json({ error: 'User not found' }, 404)
+  
+  return c.json({ points: user.points || 0 })
+})
+
+// ログインボーナス付与
+app.post('/api/users/:id/daily-bonus', async (c) => {
+  const { DB } = c.env
+  const userId = c.req.param('id')
+  const bonusAmount = 10
+  
+  // 今日すでに受け取っているかチェック
+  const today = new Date().toISOString().split('T')[0]
+  const { results } = await DB.prepare(`
+    SELECT * FROM point_transactions 
+    WHERE to_user_id = ? AND transaction_type = 'login' 
+    AND DATE(created_at) = ?
+  `).bind(userId, today).all()
+  
+  if (results && results.length > 0) {
+    return c.json({ error: 'Already received today' }, 400)
+  }
+  
+  // ポイント付与
+  await DB.prepare('UPDATE users SET points = points + ? WHERE id = ?')
+    .bind(bonusAmount, userId).run()
+  
+  await DB.prepare(`
+    INSERT INTO point_transactions (to_user_id, amount, transaction_type)
+    VALUES (?, ?, 'login')
+  `).bind(userId, bonusAmount).run()
+  
+  const user = await DB.prepare('SELECT points FROM users WHERE id = ?').bind(userId).first()
+  
+  return c.json({ success: true, points: user.points, bonus: bonusAmount })
+})
+
+// 投げ銭送信
+app.post('/api/tips', async (c) => {
+  const { DB } = c.env
+  const body = await c.req.json()
+  const { from_user_id, to_user_id, amount, target_type, target_id, message } = body
+  
+  if (!from_user_id || !to_user_id || !amount) {
+    return c.json({ error: 'Missing required fields' }, 400)
+  }
+  
+  if (amount < 10 || amount > 1000) {
+    return c.json({ error: 'Amount must be between 10 and 1000' }, 400)
+  }
+  
+  // 自分に送ることはできない
+  if (from_user_id === to_user_id) {
+    return c.json({ error: 'Cannot send to yourself' }, 400)
+  }
+  
+  // 送信者の残高チェック
+  const sender = await DB.prepare('SELECT points FROM users WHERE id = ?').bind(from_user_id).first()
+  if (!sender || sender.points < amount) {
+    return c.json({ error: 'Insufficient points' }, 400)
+  }
+  
+  // トランザクション実行
+  await DB.prepare('UPDATE users SET points = points - ? WHERE id = ?')
+    .bind(amount, from_user_id).run()
+  await DB.prepare('UPDATE users SET points = points + ? WHERE id = ?')
+    .bind(amount, to_user_id).run()
+  
+  await DB.prepare(`
+    INSERT INTO point_transactions 
+    (from_user_id, to_user_id, amount, transaction_type, target_type, target_id, message)
+    VALUES (?, ?, ?, 'tip', ?, ?, ?)
+  `).bind(from_user_id, to_user_id, amount, target_type, target_id, message).run()
+  
+  return c.json({ success: true })
+})
+
+// ポイント取引履歴取得
+app.get('/api/users/:id/transactions', async (c) => {
+  const { DB } = c.env
+  const userId = c.req.param('id')
+  const limit = parseInt(c.req.query('limit') || '50')
+  
+  const { results } = await DB.prepare(`
+    SELECT pt.*, 
+           fu.username as from_username, fu.display_name as from_display_name,
+           tu.username as to_username, tu.display_name as to_display_name
+    FROM point_transactions pt
+    LEFT JOIN users fu ON pt.from_user_id = fu.id
+    LEFT JOIN users tu ON pt.to_user_id = tu.id
+    WHERE pt.from_user_id = ? OR pt.to_user_id = ?
+    ORDER BY pt.created_at DESC
+    LIMIT ?
+  `).bind(userId, userId, limit).all()
+  
+  return c.json({ transactions: results || [] })
+})
+
+// ===== 交換所API =====
+
+// 交換可能アイテム一覧取得
+app.get('/api/exchange/items', async (c) => {
+  const { DB } = c.env
+  const category = c.req.query('category')
+  
+  let query = 'SELECT * FROM exchange_items WHERE is_available = 1'
+  const params: any[] = []
+  
+  if (category) {
+    query += ' AND category = ?'
+    params.push(category)
+  }
+  
+  query += ' ORDER BY required_points ASC'
+  
+  const { results } = await DB.prepare(query).bind(...params).all()
+  return c.json({ items: results || [] })
+})
+
+// アイテム詳細取得
+app.get('/api/exchange/items/:id', async (c) => {
+  const { DB } = c.env
+  const itemId = c.req.param('id')
+  
+  const item = await DB.prepare('SELECT * FROM exchange_items WHERE id = ?').bind(itemId).first()
+  if (!item) return c.json({ error: 'Item not found' }, 404)
+  
+  return c.json(item)
+})
+
+// アイテム交換
+app.post('/api/exchange', async (c) => {
+  const { DB } = c.env
+  const body = await c.req.json()
+  const { user_id, item_id, shipping_info } = body
+  
+  if (!user_id || !item_id) {
+    return c.json({ error: 'Missing required fields' }, 400)
+  }
+  
+  // アイテム取得
+  const item = await DB.prepare('SELECT * FROM exchange_items WHERE id = ?').bind(item_id).first()
+  if (!item) return c.json({ error: 'Item not found' }, 404)
+  if (!item.is_available) return c.json({ error: 'Item not available' }, 400)
+  
+  // 在庫チェック
+  if (item.stock_quantity >= 0 && item.stock_quantity <= 0) {
+    return c.json({ error: 'Out of stock' }, 400)
+  }
+  
+  // ユーザーの残高チェック
+  const user = await DB.prepare('SELECT points FROM users WHERE id = ?').bind(user_id).first()
+  if (!user || user.points < item.required_points) {
+    return c.json({ error: 'Insufficient points' }, 400)
+  }
+  
+  // トランザクション実行
+  await DB.prepare('UPDATE users SET points = points - ? WHERE id = ?')
+    .bind(item.required_points, user_id).run()
+  
+  // 在庫減少（無制限の場合は減らさない）
+  if (item.stock_quantity >= 0) {
+    await DB.prepare('UPDATE exchange_items SET stock_quantity = stock_quantity - 1 WHERE id = ?')
+      .bind(item_id).run()
+  }
+  
+  // 交換履歴記録
+  const result = await DB.prepare(`
+    INSERT INTO exchange_history (user_id, item_id, points_used, shipping_info, status)
+    VALUES (?, ?, ?, ?, 'pending')
+  `).bind(user_id, item_id, item.required_points, shipping_info || null).run()
+  
+  // ポイント取引履歴
+  await DB.prepare(`
+    INSERT INTO point_transactions (to_user_id, amount, transaction_type)
+    VALUES (?, ?, 'exchange')
+  `).bind(user_id, -item.required_points).run()
+  
+  return c.json({ 
+    success: true, 
+    exchange_id: result.meta.last_row_id,
+    remaining_points: user.points - item.required_points
+  })
+})
+
+// 交換履歴取得
+app.get('/api/users/:id/exchanges', async (c) => {
+  const { DB } = c.env
+  const userId = c.req.param('id')
+  const limit = parseInt(c.req.query('limit') || '50')
+  
+  const { results } = await DB.prepare(`
+    SELECT eh.*, ei.name, ei.description, ei.image_url, ei.category
+    FROM exchange_history eh
+    LEFT JOIN exchange_items ei ON eh.item_id = ei.id
+    WHERE eh.user_id = ?
+    ORDER BY eh.created_at DESC
+    LIMIT ?
+  `).bind(userId, limit).all()
+  
+  return c.json({ exchanges: results || [] })
+})
+
 // ==================== Frontend Routes ====================
 
 // ホームページ
@@ -586,7 +797,7 @@ app.get('/', (c) => {
         <nav class="bg-white shadow-sm sticky top-0 z-50">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between h-16 items-center">
-                    <div class="flex items-center">
+                    <div class="flex items-center cursor-pointer" onclick="scrollToTop()">
                         <i class="fas fa-train text-3xl text-purple-600 mr-3"></i>
                         <span class="text-2xl font-bold text-gray-800">プラレールSNS</span>
                     </div>
@@ -603,8 +814,15 @@ app.get('/', (c) => {
                     </div>
                     
                     <div class="flex items-center space-x-4">
-                        <a href="#posts" class="text-gray-600 hover:text-purple-600 transition"><i class="fas fa-images mr-1"></i>投稿</a>
-                        <a href="#questions" class="text-gray-600 hover:text-purple-600 transition"><i class="fas fa-question-circle mr-1"></i>質問</a>
+                        <button onclick="scrollToSection('posts')" class="text-gray-600 hover:text-purple-600 transition">
+                            <i class="fas fa-images mr-1"></i>投稿
+                        </button>
+                        <button onclick="scrollToSection('questions')" class="text-gray-600 hover:text-purple-600 transition">
+                            <i class="fas fa-question-circle mr-1"></i>質問
+                        </button>
+                        <button onclick="showExchangeModal()" class="text-gray-600 hover:text-purple-600 transition">
+                            <i class="fas fa-gift mr-1"></i>交換所
+                        </button>
                         
                         <!-- ログイン前 -->
                         <button id="login-btn" onclick="showLoginModal()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
@@ -613,6 +831,9 @@ app.get('/', (c) => {
                         
                         <!-- ログイン後 -->
                         <div id="user-menu" style="display:none;" class="flex items-center space-x-4">
+                            <div onclick="showPointsModal()" class="cursor-pointer bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-lg font-bold hover:scale-105 transition">
+                                <i class="fas fa-coins mr-1"></i><span id="user-points">0</span>P
+                            </div>
                             <span id="user-display-name" class="text-gray-700 font-semibold"></span>
                             <button onclick="logout()" class="text-gray-600 hover:text-red-600 transition">
                                 <i class="fas fa-sign-out-alt"></i> ログアウト
@@ -907,6 +1128,110 @@ app.get('/', (c) => {
                 <div id="explore-content">
                     <!-- 動的に読み込まれます -->
                 </div>
+            </div>
+        </div>
+
+        <!-- 交換所モーダル -->
+        <div id="exchange-modal" class="hidden modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-8 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-gray-800">
+                        <i class="fas fa-gift text-purple-600 mr-2"></i>ポイント交換所
+                    </h2>
+                    <button onclick="closeExchangeModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+
+                <!-- カテゴリーフィルター -->
+                <div class="flex gap-2 mb-6 overflow-x-auto">
+                    <button onclick="filterExchangeItems('all')" id="exchange-filter-all" class="px-4 py-2 rounded-lg bg-purple-600 text-white whitespace-nowrap">
+                        すべて
+                    </button>
+                    <button onclick="filterExchangeItems('goods')" id="exchange-filter-goods" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 whitespace-nowrap">
+                        グッズ
+                    </button>
+                    <button onclick="filterExchangeItems('event')" id="exchange-filter-event" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 whitespace-nowrap">
+                        イベント
+                    </button>
+                    <button onclick="filterExchangeItems('privilege')" id="exchange-filter-privilege" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 whitespace-nowrap">
+                        特典
+                    </button>
+                </div>
+
+                <div id="exchange-items-container" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- 動的に読み込まれます -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ポイント管理モーダル -->
+        <div id="points-modal" class="hidden modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-gray-800">
+                        <i class="fas fa-coins text-yellow-500 mr-2"></i>マイポイント
+                    </h2>
+                    <button onclick="closePointsModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+
+                <!-- ポイント残高 -->
+                <div class="bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-6 rounded-lg mb-6">
+                    <p class="text-lg mb-2">現在のポイント</p>
+                    <p class="text-5xl font-bold"><span id="points-balance">0</span> P</p>
+                </div>
+
+                <!-- ログインボーナスボタン -->
+                <button onclick="claimDailyBonus()" id="daily-bonus-btn" class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition mb-6">
+                    <i class="fas fa-gift mr-2"></i>ログインボーナスを受け取る (10P)
+                </button>
+
+                <!-- タブ -->
+                <div class="flex border-b mb-6">
+                    <button onclick="switchPointsTab('transactions')" id="points-tab-transactions" class="px-6 py-3 text-purple-600 border-b-2 border-purple-600 font-semibold">
+                        取引履歴
+                    </button>
+                    <button onclick="switchPointsTab('exchanges')" id="points-tab-exchanges" class="px-6 py-3 text-gray-600 hover:text-purple-600">
+                        交換履歴
+                    </button>
+                </div>
+
+                <div id="points-content">
+                    <!-- 動的に読み込まれます -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 投げ銭モーダル -->
+        <div id="tip-modal" class="hidden modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">投げ銭を送る</h2>
+                    <button onclick="closeTipModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+                <form id="tip-form" onsubmit="submitTip(event)">
+                    <div class="mb-4">
+                        <p class="text-gray-700 mb-2">送り先: <span id="tip-target-name" class="font-bold"></span></p>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 mb-2">ポイント数 *</label>
+                        <input type="number" id="tip-amount" min="10" max="1000" required
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600">
+                        <p class="text-sm text-gray-500 mt-1">10〜1000ポイント</p>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 mb-2">メッセージ（任意）</label>
+                        <textarea id="tip-message" rows="3"
+                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"></textarea>
+                    </div>
+                    <button type="submit" class="w-full bg-yellow-500 text-white py-2 rounded-lg hover:bg-yellow-600 transition">
+                        <i class="fas fa-paper-plane mr-2"></i>送信する
+                    </button>
+                </form>
             </div>
         </div>
 
