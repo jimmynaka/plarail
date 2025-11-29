@@ -559,7 +559,6 @@ app.get('/api/search', async (c) => {
 // ==================== Frontend Routes ====================
 
 // ホームページ
-// ホームページ
 app.get('/', (c) => {
   return c.html(`
     <!DOCTYPE html>
@@ -579,51 +578,25 @@ app.get('/', (c) => {
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             transition: all 0.3s ease;
           }
-          .modal {
-            display: none;
-          }
-          .modal.active {
-            display: flex;
-          }
         </style>
     </head>
     <body class="bg-gray-50">
         <!-- ナビゲーションバー -->
         <nav class="bg-white shadow-sm sticky top-0 z-50">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between h-16 items-center">
+                <div class="flex justify-between h-16">
                     <div class="flex items-center">
                         <i class="fas fa-train text-3xl text-purple-600 mr-3"></i>
                         <span class="text-2xl font-bold text-gray-800">プラレールSNS</span>
                     </div>
-                    
-                    <!-- 検索バー -->
-                    <div class="flex-1 max-w-xl mx-8">
-                        <form id="search-form" class="relative">
-                            <input type="text" id="search-input" placeholder="投稿、質問、ユーザーを検索..." 
-                                   class="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600">
-                            <button type="submit" class="absolute right-2 top-2 text-gray-400 hover:text-purple-600">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </form>
-                    </div>
-                    
-                    <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-6">
                         <a href="#posts" class="text-gray-600 hover:text-purple-600 transition"><i class="fas fa-images mr-1"></i>投稿</a>
                         <a href="#questions" class="text-gray-600 hover:text-purple-600 transition"><i class="fas fa-question-circle mr-1"></i>質問</a>
-                        
-                        <!-- ログイン前 -->
-                        <button id="login-btn" onclick="showLoginModal()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
+                        <a href="#announcements" class="text-gray-600 hover:text-purple-600 transition"><i class="fas fa-bullhorn mr-1"></i>新商品</a>
+                        <a href="#requests" class="text-gray-600 hover:text-purple-600 transition"><i class="fas fa-lightbulb mr-1"></i>要望</a>
+                        <button class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
                             <i class="fas fa-user mr-1"></i>ログイン
                         </button>
-                        
-                        <!-- ログイン後 -->
-                        <div id="user-menu" style="display:none;" class="flex items-center space-x-4">
-                            <span id="user-display-name" class="text-gray-700 font-semibold"></span>
-                            <button onclick="logout()" class="text-gray-600 hover:text-red-600 transition">
-                                <i class="fas fa-sign-out-alt"></i> ログアウト
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -635,10 +608,10 @@ app.get('/', (c) => {
                 <h1 class="text-5xl font-bold mb-4">プラレール愛好者のためのSNS</h1>
                 <p class="text-xl mb-8">作品を共有し、知識を交換し、コミュニティを楽しもう</p>
                 <div class="flex justify-center space-x-4">
-                    <button onclick="showPostModal()" class="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">
+                    <button class="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">
                         <i class="fas fa-camera mr-2"></i>投稿する
                     </button>
-                    <button onclick="document.getElementById('search-input').focus()" class="bg-transparent border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-purple-600 transition">
+                    <button class="bg-transparent border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-purple-600 transition">
                         <i class="fas fa-search mr-2"></i>探索する
                     </button>
                 </div>
@@ -650,19 +623,19 @@ app.get('/', (c) => {
             <h2 class="text-3xl font-bold text-center mb-12 text-gray-800">主要機能</h2>
             <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <!-- 画像投稿 -->
-                <div class="bg-white rounded-lg shadow-md p-6 card-hover cursor-pointer" onclick="showPostModal()">
+                <div class="bg-white rounded-lg shadow-md p-6 card-hover">
                     <div class="text-blue-500 text-4xl mb-4"><i class="fas fa-images"></i></div>
                     <h3 class="text-xl font-semibold mb-2">画像投稿</h3>
                     <p class="text-gray-600">レイアウトやコレクションを共有しよう</p>
-                    <button class="mt-4 text-blue-600 hover:underline">投稿する →</button>
+                    <button class="mt-4 text-blue-600 hover:underline" onclick="loadPosts()">投稿を見る →</button>
                 </div>
                 
                 <!-- 質問・回答 -->
-                <div class="bg-white rounded-lg shadow-md p-6 card-hover cursor-pointer" onclick="showQuestionModal()">
+                <div class="bg-white rounded-lg shadow-md p-6 card-hover">
                     <div class="text-green-500 text-4xl mb-4"><i class="fas fa-question-circle"></i></div>
                     <h3 class="text-xl font-semibold mb-2">質問・回答</h3>
                     <p class="text-gray-600">困ったことを相談して解決しよう</p>
-                    <button class="mt-4 text-green-600 hover:underline">質問する →</button>
+                    <button class="mt-4 text-green-600 hover:underline" onclick="loadQuestions()">質問を見る →</button>
                 </div>
                 
                 <!-- 新商品発表 -->
@@ -670,43 +643,30 @@ app.get('/', (c) => {
                     <div class="text-purple-500 text-4xl mb-4"><i class="fas fa-bullhorn"></i></div>
                     <h3 class="text-xl font-semibold mb-2">新商品発表</h3>
                     <p class="text-gray-600">最新のプラレール情報をチェック</p>
-                    <a href="#announcements" class="mt-4 text-purple-600 hover:underline inline-block">発表を見る →</a>
+                    <button class="mt-4 text-purple-600 hover:underline" onclick="loadAnnouncements()">発表を見る →</button>
                 </div>
                 
                 <!-- 要望リクエスト -->
-                <div class="bg-white rounded-lg shadow-md p-6 card-hover cursor-pointer" onclick="showRequestModal()">
+                <div class="bg-white rounded-lg shadow-md p-6 card-hover">
                     <div class="text-orange-500 text-4xl mb-4"><i class="fas fa-lightbulb"></i></div>
                     <h3 class="text-xl font-semibold mb-2">要望リクエスト</h3>
                     <p class="text-gray-600">欲しい商品をメーカーに届けよう</p>
-                    <button class="mt-4 text-orange-600 hover:underline">要望する →</button>
+                    <button class="mt-4 text-orange-600 hover:underline" onclick="loadRequests()">要望を見る →</button>
                 </div>
             </div>
         </div>
 
-        <!-- 検索結果エリア -->
-        <div id="search-results" class="max-w-7xl mx-auto px-4 pb-8" style="display:none;"></div>
-
         <!-- コンテンツエリア -->
         <div id="content-area" class="max-w-7xl mx-auto px-4 pb-16">
             <div id="posts" class="mb-16">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-3xl font-bold text-gray-800"><i class="fas fa-images mr-2"></i>最新の投稿</h2>
-                    <button onclick="showPostModal()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
-                        <i class="fas fa-plus mr-1"></i>新規投稿
-                    </button>
-                </div>
+                <h2 class="text-3xl font-bold mb-6 text-gray-800"><i class="fas fa-images mr-2"></i>最新の投稿</h2>
                 <div id="posts-container" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <!-- 投稿カードがここに表示されます -->
                 </div>
             </div>
 
             <div id="questions" class="mb-16">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-3xl font-bold text-gray-800"><i class="fas fa-question-circle mr-2"></i>最新の質問</h2>
-                    <button onclick="showQuestionModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
-                        <i class="fas fa-plus mr-1"></i>質問する
-                    </button>
-                </div>
+                <h2 class="text-3xl font-bold mb-6 text-gray-800"><i class="fas fa-question-circle mr-2"></i>最新の質問</h2>
                 <div id="questions-container" class="space-y-4">
                     <!-- 質問カードがここに表示されます -->
                 </div>
@@ -720,164 +680,10 @@ app.get('/', (c) => {
             </div>
 
             <div id="requests">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-3xl font-bold text-gray-800"><i class="fas fa-lightbulb mr-2"></i>人気の要望</h2>
-                    <button onclick="showRequestModal()" class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition">
-                        <i class="fas fa-plus mr-1"></i>要望する
-                    </button>
-                </div>
+                <h2 class="text-3xl font-bold mb-6 text-gray-800"><i class="fas fa-lightbulb mr-2"></i>人気の要望</h2>
                 <div id="requests-container" class="space-y-4">
                     <!-- 要望カードがここに表示されます -->
                 </div>
-            </div>
-        </div>
-
-        <!-- ログインモーダル -->
-        <div id="login-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold">ログイン</h2>
-                    <button onclick="closeLoginModal()" class="text-gray-500 hover:text-gray-700">
-                        <i class="fas fa-times text-2xl"></i>
-                    </button>
-                </div>
-                <form onsubmit="handleLogin(event)">
-                    <div class="mb-4">
-                        <label class="block text-gray-700 mb-2">ユーザー名</label>
-                        <input type="text" id="login-username" required
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
-                               placeholder="例: plarail_taro">
-                        <p class="text-sm text-gray-500 mt-2">既存のユーザー名: admin, takara_tomy, plarail_taro, train_collector, layout_master</p>
-                    </div>
-                    <button type="submit" class="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition">
-                        ログイン
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- 投稿モーダル -->
-        <div id="post-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold">新規投稿</h2>
-                    <button onclick="closePostModal()" class="text-gray-500 hover:text-gray-700">
-                        <i class="fas fa-times text-2xl"></i>
-                    </button>
-                </div>
-                <form id="post-form" onsubmit="submitPost(event)">
-                    <div class="mb-4">
-                        <label class="block text-gray-700 mb-2">タイトル *</label>
-                        <input type="text" id="post-title" required
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600">
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-gray-700 mb-2">説明</label>
-                        <textarea id="post-description" rows="4"
-                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"></textarea>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-gray-700 mb-2">カテゴリ *</label>
-                        <select id="post-category" required
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600">
-                            <option value="レイアウト">レイアウト</option>
-                            <option value="車両コレクション">車両コレクション</option>
-                            <option value="改造">改造</option>
-                            <option value="ジオラマ">ジオラマ</option>
-                        </select>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-gray-700 mb-2">タグ（カンマ区切り）</label>
-                        <input type="text" id="post-tags" placeholder="例: 新幹線, E5系, レイアウト"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600">
-                    </div>
-                    <button type="submit" class="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition">
-                        投稿する
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- 質問モーダル -->
-        <div id="question-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold">質問する</h2>
-                    <button onclick="closeQuestionModal()" class="text-gray-500 hover:text-gray-700">
-                        <i class="fas fa-times text-2xl"></i>
-                    </button>
-                </div>
-                <form id="question-form" onsubmit="submitQuestion(event)">
-                    <div class="mb-4">
-                        <label class="block text-gray-700 mb-2">タイトル *</label>
-                        <input type="text" id="question-title" required
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600">
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-gray-700 mb-2">質問内容 *</label>
-                        <textarea id="question-content" rows="6" required
-                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"></textarea>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-gray-700 mb-2">カテゴリ *</label>
-                        <select id="question-category" required
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600">
-                            <option value="車両">車両</option>
-                            <option value="レイアウト">レイアウト</option>
-                            <option value="購入相談">購入相談</option>
-                            <option value="メンテナンス">メンテナンス</option>
-                        </select>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-gray-700 mb-2">難易度</label>
-                        <select id="question-difficulty"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600">
-                            <option value="初心者">初心者</option>
-                            <option value="中級者">中級者</option>
-                            <option value="上級者">上級者</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">
-                        質問を投稿
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- 要望モーダル -->
-        <div id="request-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold">要望を投稿</h2>
-                    <button onclick="closeRequestModal()" class="text-gray-500 hover:text-gray-700">
-                        <i class="fas fa-times text-2xl"></i>
-                    </button>
-                </div>
-                <form id="request-form" onsubmit="submitRequest(event)">
-                    <div class="mb-4">
-                        <label class="block text-gray-700 mb-2">タイトル *</label>
-                        <input type="text" id="request-title" required
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-600">
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-gray-700 mb-2">詳細説明 *</label>
-                        <textarea id="request-description" rows="6" required
-                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-600"></textarea>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-gray-700 mb-2">カテゴリ *</label>
-                        <select id="request-category" required
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-600">
-                            <option value="新車両">新車両</option>
-                            <option value="新レール・情景部品">新レール・情景部品</option>
-                            <option value="既存商品改良">既存商品改良</option>
-                            <option value="復刻要望">復刻要望</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="w-full bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 transition">
-                        要望を投稿
-                    </button>
-                </form>
             </div>
         </div>
 
@@ -886,15 +692,156 @@ app.get('/', (c) => {
             <div class="max-w-7xl mx-auto px-4 text-center">
                 <p class="text-gray-400">© 2025 プラレールSNS - コミュニティプラットフォーム</p>
                 <div class="mt-4 space-x-4">
-                    <a href="https://github.com/jimmynaka/plarail" target="_blank" class="text-gray-400 hover:text-white transition">
-                        <i class="fab fa-github text-2xl"></i>
-                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="text-gray-400 hover:text-white transition"><i class="fab fa-facebook"></i></a>
+                    <a href="#" class="text-gray-400 hover:text-white transition"><i class="fab fa-instagram"></i></a>
                 </div>
             </div>
         </footer>
 
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
         <script src="/static/app.js"></script>
+        <script>
+          // データ読み込み関数（app.jsに移動済み）
+          async function loadPosts_old() {
+            try {
+              const { data } = await axios.get('/api/posts?limit=6');
+              const container = document.getElementById('posts-container');
+              container.innerHTML = data.posts.map(post => {
+                const images = JSON.parse(post.images || '[]');
+                return \`
+                  <div class="bg-white rounded-lg shadow-md overflow-hidden card-hover">
+                    <img src="\${images[0] || 'https://placehold.co/400x300/e5e7eb/64748b?text=No+Image'}" class="w-full h-48 object-cover" alt="\${post.title}">
+                    <div class="p-4">
+                      <div class="flex items-center mb-2">
+                        <img src="\${post.avatar_url || 'https://placehold.co/32x32/6366f1/ffffff?text=' + post.display_name[0]}" class="w-8 h-8 rounded-full mr-2" alt="\${post.display_name}">
+                        <div>
+                          <p class="text-sm font-semibold">\${post.display_name}</p>
+                          <p class="text-xs text-gray-500">\${new Date(post.created_at).toLocaleDateString('ja-JP')}</p>
+                        </div>
+                      </div>
+                      <h3 class="font-semibold text-lg mb-2">\${post.title}</h3>
+                      <p class="text-gray-600 text-sm mb-3 line-clamp-2">\${post.description || ''}</p>
+                      <div class="flex items-center justify-between text-sm text-gray-500">
+                        <span><i class="fas fa-heart text-red-500 mr-1"></i>\${post.like_count}</span>
+                        <span><i class="fas fa-eye mr-1"></i>\${post.view_count}</span>
+                        <span class="bg-blue-100 text-blue-600 px-2 py-1 rounded">\${post.category}</span>
+                      </div>
+                    </div>
+                  </div>
+                \`;
+              }).join('');
+            } catch (error) {
+              console.error('投稿の読み込みエラー:', error);
+            }
+          }
+
+          async function loadQuestions() {
+            try {
+              const { data } = await axios.get('/api/questions?limit=5');
+              const container = document.getElementById('questions-container');
+              container.innerHTML = data.questions.map(q => \`
+                <div class="bg-white rounded-lg shadow-md p-6 card-hover">
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <div class="flex items-center mb-2">
+                        <span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded mr-2">\${q.category}</span>
+                        <span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">\${q.difficulty || '初心者'}</span>
+                        <span class="ml-2 \${q.status === 'solved' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'} text-xs px-2 py-1 rounded">
+                          \${q.status === 'solved' ? '✓ 解決済み' : '未解決'}
+                        </span>
+                      </div>
+                      <h3 class="font-semibold text-lg mb-2">\${q.title}</h3>
+                      <p class="text-gray-600 text-sm mb-3 line-clamp-2">\${q.content}</p>
+                      <div class="flex items-center text-sm text-gray-500">
+                        <img src="\${q.avatar_url || 'https://placehold.co/24x24/6366f1/ffffff?text=' + q.display_name[0]}" class="w-6 h-6 rounded-full mr-2" alt="\${q.display_name}">
+                        <span class="mr-4">\${q.display_name}</span>
+                        <span class="mr-4"><i class="fas fa-comment mr-1"></i>\${q.answer_count}件の回答</span>
+                        <span><i class="fas fa-eye mr-1"></i>\${q.view_count}閲覧</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              \`).join('');
+            } catch (error) {
+              console.error('質問の読み込みエラー:', error);
+            }
+          }
+
+          async function loadAnnouncements() {
+            try {
+              const { data } = await axios.get('/api/announcements?limit=4');
+              const container = document.getElementById('announcements-container');
+              container.innerHTML = data.announcements.map(a => {
+                const images = JSON.parse(a.images || '[]');
+                return \`
+                  <div class="bg-white rounded-lg shadow-md overflow-hidden card-hover">
+                    <div class="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 flex items-center">
+                      <i class="fas fa-badge-check mr-2"></i>
+                      <span class="font-semibold">\${a.display_name}</span>
+                    </div>
+                    <img src="\${images[0] || 'https://placehold.co/600x400/e5e7eb/64748b?text=No+Image'}" class="w-full h-48 object-cover" alt="\${a.product_name}">
+                    <div class="p-4">
+                      <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-semibold text-lg">\${a.product_name}</h3>
+                        <span class="text-purple-600 font-bold">¥\${(a.price || 0).toLocaleString()}</span>
+                      </div>
+                      <p class="text-gray-600 text-sm mb-3 line-clamp-2">\${a.description || ''}</p>
+                      <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-500"><i class="fas fa-calendar mr-1"></i>\${a.release_date ? new Date(a.release_date).toLocaleDateString('ja-JP') : '未定'}</span>
+                        <span class="text-gray-500"><i class="fas fa-heart text-red-500 mr-1"></i>\${a.like_count}</span>
+                      </div>
+                    </div>
+                  </div>
+                \`;
+              }).join('');
+            } catch (error) {
+              console.error('新商品の読み込みエラー:', error);
+            }
+          }
+
+          async function loadRequests() {
+            try {
+              const { data } = await axios.get('/api/requests?limit=5');
+              const container = document.getElementById('requests-container');
+              container.innerHTML = data.requests.map(r => \`
+                <div class="bg-white rounded-lg shadow-md p-6 card-hover">
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <div class="flex items-center mb-2">
+                        <span class="bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded mr-2">\${r.category}</span>
+                        <span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">\${r.status === 'pending' ? '受付中' : r.status === 'confirmed' ? '確認済み' : r.status === 'in_review' ? '検討中' : r.status}</span>
+                      </div>
+                      <h3 class="font-semibold text-lg mb-2">\${r.title}</h3>
+                      <p class="text-gray-600 text-sm mb-3 line-clamp-2">\${r.description}</p>
+                      <div class="flex items-center justify-between text-sm">
+                        <div class="flex items-center text-gray-500">
+                          <img src="\${r.avatar_url || 'https://placehold.co/24x24/6366f1/ffffff?text=' + r.display_name[0]}" class="w-6 h-6 rounded-full mr-2" alt="\${r.display_name}">
+                          <span>\${r.display_name}</span>
+                        </div>
+                        <div class="flex items-center">
+                          <button class="bg-orange-100 text-orange-700 px-3 py-1 rounded hover:bg-orange-200 transition">
+                            <i class="fas fa-thumbs-up mr-1"></i>賛同 \${r.support_count}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              \`).join('');
+            } catch (error) {
+              console.error('要望の読み込みエラー:', error);
+            }
+          }
+
+          // ページ読み込み時にデータをロード
+          window.addEventListener('DOMContentLoaded', () => {
+            loadPosts();
+            loadQuestions();
+            loadAnnouncements();
+            loadRequests();
+          });
+        </script>
     </body>
     </html>
   `)
