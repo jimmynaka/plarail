@@ -6,7 +6,7 @@
 - **技術スタック**: Hono + Cloudflare Pages + D1 Database + R2 Storage
 
 ## 公開URL
-- **本番環境（最新）**: https://34cc7bc1.plarail-sns.pages.dev
+- **本番環境（最新）**: https://b6553ce3.plarail-sns.pages.dev
 - **GitHub**: https://github.com/jimmynaka/plarail
 - **開発環境**: https://3000-i1wtec293xug7k5j2mu59-6532622b.e2b.dev
 

@@ -4,7 +4,7 @@
 
 ### 🚪 ログイン方法
 
-1. **ブラウザでアクセス**: https://34cc7bc1.plarail-sns.pages.dev
+1. **ブラウザでアクセス**: https://b6553ce3.plarail-sns.pages.dev
 2. **右上の「ログイン」ボタンをクリック**
 3. **既存のユーザー名を入力**:
    - `admin` - 運営アカウント
