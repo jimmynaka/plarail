@@ -10,6 +10,52 @@
 - **GitHub**: https://github.com/jimmynaka/plarail
 - **開発環境**: https://3000-i1wtec293xug7k5j2mu59-6532622b.e2b.dev
 
+## 📝 投稿・検索の使い方
+
+### APIを使った投稿方法
+
+**新規投稿を作成:**
+```bash
+curl -X POST https://8fa4e02b.plarail-sns.pages.dev/api/posts \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": 3,
+    "title": "新しいレイアウト完成！",
+    "description": "今日作ったレイアウトです",
+    "category": "レイアウト",
+    "visibility": "public",
+    "images": ["https://placehold.co/800x600/3b82f6/ffffff?text=My+Layout"],
+    "tags": ["レイアウト", "新幹線"]
+  }'
+```
+
+**質問を投稿:**
+```bash
+curl -X POST https://8fa4e02b.plarail-sns.pages.dev/api/questions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": 3,
+    "title": "レールの接続について",
+    "content": "曲線レールと直線レールの接続がうまくいきません",
+    "category": "レイアウト",
+    "difficulty": "初心者"
+  }'
+```
+
+**検索:**
+```bash
+curl "https://8fa4e02b.plarail-sns.pages.dev/api/search?q=新幹線"
+```
+
+**既存ユーザー (user_id):**
+- 1: admin (運営)
+- 2: takara_tomy (公式)
+- 3: plarail_taro
+- 4: train_collector
+- 5: layout_master
+
+詳しい使い方は `INSTRUCTIONS.md` を参照してください。
+
 ## 現在完成している機能
 
 ### 1. 画像投稿・公開機能 ✅
