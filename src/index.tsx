@@ -579,12 +579,6 @@ app.get('/', (c) => {
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             transition: all 0.3s ease;
           }
-          .modal {
-            display: none;
-          }
-          .modal.active {
-            display: flex;
-          }
         </style>
     </head>
     <body class="bg-gray-50">
@@ -733,7 +727,7 @@ app.get('/', (c) => {
         </div>
 
         <!-- ログインモーダル -->
-        <div id="login-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div id="login-modal" class="hidden modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold">ログイン</h2>
@@ -757,7 +751,7 @@ app.get('/', (c) => {
         </div>
 
         <!-- 投稿モーダル -->
-        <div id="post-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div id="post-modal" class="hidden modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold">新規投稿</h2>
@@ -799,7 +793,7 @@ app.get('/', (c) => {
         </div>
 
         <!-- 質問モーダル -->
-        <div id="question-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div id="question-modal" class="hidden modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold">質問する</h2>
@@ -845,7 +839,7 @@ app.get('/', (c) => {
         </div>
 
         <!-- 要望モーダル -->
-        <div id="request-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div id="request-modal" class="hidden modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold">要望を投稿</h2>
@@ -882,7 +876,7 @@ app.get('/', (c) => {
         </div>
 
         <!-- 探索モーダル -->
-        <div id="explore-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div id="explore-modal" class="hidden modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div class="bg-white rounded-lg p-8 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-3xl font-bold text-gray-800">

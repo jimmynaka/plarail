@@ -674,7 +674,7 @@ function clearSearchHistory() {
 // 探索モーダル表示
 function showExploreModal() {
   const modal = document.getElementById('explore-modal');
-  modal.classList.add('active');
+  modal.classList.remove('hidden');
   
   // デフォルトで人気タブを表示
   loadExploreContent('popular');
@@ -683,7 +683,7 @@ function showExploreModal() {
 // 探索モーダルを閉じる
 function closeExploreModal() {
   const modal = document.getElementById('explore-modal');
-  modal.classList.remove('active');
+  modal.classList.add('hidden');
 }
 
 // 探索タブ切り替え
