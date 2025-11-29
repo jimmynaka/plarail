@@ -638,8 +638,8 @@ app.get('/', (c) => {
                     <button onclick="showPostModal()" class="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">
                         <i class="fas fa-camera mr-2"></i>投稿する
                     </button>
-                    <button onclick="document.getElementById('search-input').focus()" class="bg-transparent border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-purple-600 transition">
-                        <i class="fas fa-search mr-2"></i>探索する
+                    <button onclick="showExploreModal()" class="bg-transparent border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-purple-600 transition">
+                        <i class="fas fa-compass mr-2"></i>探索する
                     </button>
                 </div>
             </div>
@@ -878,6 +878,41 @@ app.get('/', (c) => {
                         要望を投稿
                     </button>
                 </form>
+            </div>
+        </div>
+
+        <!-- 探索モーダル -->
+        <div id="explore-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-8 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-gray-800">
+                        <i class="fas fa-compass text-purple-600 mr-2"></i>探索する
+                    </h2>
+                    <button onclick="closeExploreModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-2xl"></i>
+                    </button>
+                </div>
+
+                <!-- タブメニュー -->
+                <div class="flex border-b mb-6 overflow-x-auto">
+                    <button onclick="switchExploreTab('popular')" id="tab-popular" class="px-6 py-3 text-purple-600 border-b-2 border-purple-600 font-semibold whitespace-nowrap">
+                        <i class="fas fa-fire mr-1"></i>人気の投稿
+                    </button>
+                    <button onclick="switchExploreTab('trending')" id="tab-trending" class="px-6 py-3 text-gray-600 hover:text-purple-600 whitespace-nowrap">
+                        <i class="fas fa-hashtag mr-1"></i>トレンドタグ
+                    </button>
+                    <button onclick="switchExploreTab('users')" id="tab-users" class="px-6 py-3 text-gray-600 hover:text-purple-600 whitespace-nowrap">
+                        <i class="fas fa-users mr-1"></i>おすすめユーザー
+                    </button>
+                    <button onclick="switchExploreTab('latest')" id="tab-latest" class="px-6 py-3 text-gray-600 hover:text-purple-600 whitespace-nowrap">
+                        <i class="fas fa-clock mr-1"></i>最新の投稿
+                    </button>
+                </div>
+
+                <!-- タブコンテンツ -->
+                <div id="explore-content">
+                    <!-- 動的に読み込まれます -->
+                </div>
             </div>
         </div>
 

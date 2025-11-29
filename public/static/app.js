@@ -671,6 +671,181 @@ function clearSearchHistory() {
   }
 }
 
+// 探索モーダル表示
+function showExploreModal() {
+  const modal = document.getElementById('explore-modal');
+  modal.classList.add('active');
+  
+  // デフォルトで人気タブを表示
+  loadExploreContent('popular');
+}
+
+// 探索モーダルを閉じる
+function closeExploreModal() {
+  const modal = document.getElementById('explore-modal');
+  modal.classList.remove('active');
+}
+
+// 探索タブ切り替え
+function switchExploreTab(tab) {
+  // タブのスタイル更新
+  ['popular', 'trending', 'users', 'latest'].forEach(t => {
+    const tabBtn = document.getElementById('tab-' + t);
+    if (tabBtn) {
+      if (t === tab) {
+        tabBtn.className = 'px-6 py-3 text-purple-600 border-b-2 border-purple-600 font-semibold whitespace-nowrap';
+      } else {
+        tabBtn.className = 'px-6 py-3 text-gray-600 hover:text-purple-600 whitespace-nowrap';
+      }
+    }
+  });
+  
+  // コンテンツ読み込み
+  loadExploreContent(tab);
+}
+
+// 探索コンテンツ読み込み
+async function loadExploreContent(tab) {
+  const container = document.getElementById('explore-content');
+  container.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-4xl text-gray-400"></i></div>';
+  
+  try {
+    if (tab === 'popular') {
+      // 人気の投稿（いいね数順）
+      const { data } = await axios.get('/api/posts?sort=popular&limit=12');
+      container.innerHTML = `
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          ${data.posts.map(post => {
+            const images = JSON.parse(post.images || '[]');
+            return `
+              <div class="bg-white rounded-lg shadow-md overflow-hidden card-hover">
+                <img src="${images[0] || 'https://placehold.co/400x300/e5e7eb/64748b?text=No+Image'}" class="w-full h-48 object-cover" alt="${post.title}">
+                <div class="p-4">
+                  <div class="flex items-center mb-2">
+                    <img src="${post.avatar_url || 'https://placehold.co/32x32/6366f1/ffffff?text=' + post.display_name[0]}" class="w-8 h-8 rounded-full mr-2" alt="${post.display_name}">
+                    <div>
+                      <p class="text-sm font-semibold">${post.display_name}</p>
+                      <p class="text-xs text-gray-500">${new Date(post.created_at).toLocaleDateString('ja-JP')}</p>
+                    </div>
+                  </div>
+                  <h3 class="font-semibold text-lg mb-2">${post.title}</h3>
+                  <p class="text-gray-600 text-sm mb-3 line-clamp-2">${post.description || ''}</p>
+                  <div class="flex items-center justify-between text-sm text-gray-500">
+                    <span><i class="fas fa-heart text-red-500 mr-1"></i>${post.like_count}</span>
+                    <span><i class="fas fa-eye mr-1"></i>${post.view_count}</span>
+                    <span class="bg-blue-100 text-blue-600 px-2 py-1 rounded">${post.category}</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    } else if (tab === 'trending') {
+      // トレンドタグ
+      const { data: postsData } = await axios.get('/api/posts?limit=50');
+      
+      // タグを集計
+      const tagCounts = {};
+      postsData.posts.forEach(post => {
+        const tags = JSON.parse(post.tags || '[]');
+        tags.forEach(tag => {
+          tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+        });
+      });
+      
+      // トップ20タグを取得
+      const topTags = Object.entries(tagCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 20);
+      
+      if (topTags.length === 0) {
+        container.innerHTML = '<div class="text-center py-12 text-gray-500">まだタグがありません</div>';
+      } else {
+        container.innerHTML = `
+          <div class="grid md:grid-cols-3 lg:grid-cols-4 gap-4">
+            ${topTags.map(([tag, count], index) => `
+              <button onclick="document.getElementById('search-input').value='${tag}'; document.getElementById('search-form').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true})); closeExploreModal();" 
+                      class="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-6 rounded-lg shadow-md hover:shadow-lg transition transform hover:scale-105">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-2xl font-bold">#${index + 1}</span>
+                  <i class="fas fa-fire text-orange-300"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-1">#${tag}</h3>
+                <p class="text-sm opacity-90">${count}件の投稿</p>
+              </button>
+            `).join('')}
+          </div>
+          <div class="mt-6 text-center text-gray-500 text-sm">
+            <i class="fas fa-info-circle mr-1"></i>タグをクリックすると検索できます
+          </div>
+        `;
+      }
+    } else if (tab === 'users') {
+      // おすすめユーザー
+      const { data } = await axios.get('/api/users');
+      container.innerHTML = `
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          ${data.users.map(user => `
+            <div class="bg-white rounded-lg shadow-md p-6 card-hover">
+              <div class="flex items-center mb-4">
+                <img src="${user.avatar_url || 'https://placehold.co/64x64/6366f1/ffffff?text=' + (user.display_name ? user.display_name[0] : 'U')}" 
+                     class="w-16 h-16 rounded-full mr-4" alt="${user.display_name}">
+                <div class="flex-1">
+                  <div class="flex items-center">
+                    <h3 class="font-semibold text-lg">${user.display_name}</h3>
+                    ${user.is_official ? '<i class="fas fa-check-circle text-blue-500 ml-1" title="公式アカウント"></i>' : ''}
+                  </div>
+                  <p class="text-sm text-gray-500">@${user.username}</p>
+                </div>
+              </div>
+              ${user.bio ? '<p class="text-gray-600 text-sm mb-4 line-clamp-3">' + user.bio + '</p>' : ''}
+              <button onclick="document.getElementById('search-input').value='${user.display_name}'; document.getElementById('search-form').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true})); closeExploreModal();" 
+                      class="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition">
+                <i class="fas fa-user mr-1"></i>プロフィールを見る
+              </button>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } else if (tab === 'latest') {
+      // 最新の投稿
+      const { data } = await axios.get('/api/posts?sort=latest&limit=12');
+      container.innerHTML = `
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          ${data.posts.map(post => {
+            const images = JSON.parse(post.images || '[]');
+            return `
+              <div class="bg-white rounded-lg shadow-md overflow-hidden card-hover">
+                <img src="${images[0] || 'https://placehold.co/400x300/e5e7eb/64748b?text=No+Image'}" class="w-full h-48 object-cover" alt="${post.title}">
+                <div class="p-4">
+                  <div class="flex items-center mb-2">
+                    <img src="${post.avatar_url || 'https://placehold.co/32x32/6366f1/ffffff?text=' + post.display_name[0]}" class="w-8 h-8 rounded-full mr-2" alt="${post.display_name}">
+                    <div>
+                      <p class="text-sm font-semibold">${post.display_name}</p>
+                      <p class="text-xs text-gray-500">${new Date(post.created_at).toLocaleDateString('ja-JP')}</p>
+                    </div>
+                  </div>
+                  <h3 class="font-semibold text-lg mb-2">${post.title}</h3>
+                  <p class="text-gray-600 text-sm mb-3 line-clamp-2">${post.description || ''}</p>
+                  <div class="flex items-center justify-between text-sm text-gray-500">
+                    <span><i class="fas fa-heart text-red-500 mr-1"></i>${post.like_count}</span>
+                    <span><i class="fas fa-eye mr-1"></i>${post.view_count}</span>
+                    <span class="bg-blue-100 text-blue-600 px-2 py-1 rounded">${post.category}</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+  } catch (error) {
+    console.error('探索コンテンツ読み込みエラー:', error);
+    container.innerHTML = '<div class="text-center py-12 text-red-500">読み込みに失敗しました</div>';
+  }
+}
+
 // データ読み込み関数
 async function loadPosts() {
   try {
