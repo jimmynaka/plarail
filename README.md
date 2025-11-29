@@ -6,8 +6,9 @@
 - **技術スタック**: Hono + Cloudflare Pages + D1 Database + R2 Storage
 
 ## 公開URL
+- **本番環境**: https://8fa4e02b.plarail-sns.pages.dev
+- **GitHub**: https://github.com/jimmynaka/plarail
 - **開発環境**: https://3000-i1wtec293xug7k5j2mu59-6532622b.e2b.dev
-- **本番環境**: （デプロイ後に更新）
 
 ## 現在完成している機能
 
@@ -238,6 +239,14 @@ npm run deploy:prod
 ## ライセンス
 
 MIT License
+
+## デプロイ情報
+
+- **本番環境URL**: https://8fa4e02b.plarail-sns.pages.dev
+- **プロジェクト名**: plarail-sns
+- **Cloudflareアカウント**: h.nakaga0@gmail.com
+- **D1データベース**: plarail-sns-production (WNAM region)
+- **デプロイ日**: 2025-11-29
 
 ## 最終更新日
 
